@@ -1,0 +1,41 @@
+Build Dockerfile
+
+Steps 0 - Create Network Spark in Docker
+(1) docker network create --driver bridge spark-network
+
+
+Steps 1 - Build dockerfile
+(1) docker build -f spark_dockerfile -t bff/spark .
+
+Steps 2 - Master Running::
+(2) docker run -d -t --name master --network spark-network apache_spark/bff
+    (2.1) docker exec master start-master
+    (2.2) docker exec -it ac7078f98339 cat /usr/local/spark-3.5.3/spark-3.5.3-bin-hadoop3/logs/spark--org.apache.spark.deploy.master.Master-1-ac7078f98339.out
+    (2.3) docker exec -it 49afe501f81d  netstat -plutn (return IP Master)
+    (2.4) curl http://172.18.0.2:8080
+
+Steps 3 - Worker Running::
+(3) docker run -d -t --name worker-1 --network spark-network bff/spark
+   (3.1) docker exec worker-1 start-worker spark://master:7077
+   (3.2) docker exec -it 85ecef70e0e6 cat /usr/local/spark-3.5.3/spark-3.5.3-bin-hadoop3/logs/spark--org.apache.spark.deploy.worker.Worker-1-85ecef70e0e6.out
+
+## COMMAND SUPPORT:
+
++ List
+docker ps -a
+docker images -a
+docker network ls
+netstat -plutn
+docker inspect -f '{{range $index, $value := .Config.Env}}{{$value}} {{end}}' <container_id>
+
+
++ Delete Images 
+docker system prune --all --volumes
+docker image prune
+Este comando elimina todo lo que no esté en uso por contenedores activos:
+docker system prune -a -f --volumes
+Después de limpiar, puedes verificar el espacio que utiliza Docker con:
+docker system df
+
++ Execute in Contener
+docker exec -it <container_id> <command>  
