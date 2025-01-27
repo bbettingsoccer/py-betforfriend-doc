@@ -1,0 +1,73 @@
+FROM python:3.11-slim
+
+#WORKDIR /home/
+
+# Descargar y configurar OpenJDK 8 manualmente
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    net-tools \
+    wget && \
+    wget https://download.java.net/openjdk/jdk8u41/ri/openjdk-8u41-b04-linux-x64-14_jan_2020.tar.gz && \
+    tar -xzf openjdk-8u41-b04-linux-x64-14_jan_2020.tar.gz -C /opt && \
+    rm openjdk-8u41-b04-linux-x64-14_jan_2020.tar.gz && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configurar variables de entorno para Java
+ENV JAVA_HOME=/opt/java-se-8u41-ri
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Download And Install And Setting - Apache Spark
+ENV SPARK_VERSION=3.5.3
+ENV SPARK_HOME=/opt/spark
+
+RUN wget -qO- https://archive.apache.org/dist/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop3.tgz | tar -xz -C /opt \
+    && mv /opt/spark-${SPARK_VERSION}-bin-hadoop3 $SPARK_HOME \
+    && ln -s $SPARK_HOME/bin/* /usr/local/bin/ \
+    && ln -s $SPARK_HOME/sbin/* /usr/local/bin/ \
+    && rm -rf /opt/spark-$SPARK_VERSION-bin-hadoop3.tgz
+
+RUN update-alternatives --install "/usr/sbin/start-master" "start-master" "$SPARK_HOME/sbin/start-master.sh" 1
+RUN update-alternatives --install "/usr/sbin/start-slave" "start-slave" "$SPARK_HOME/sbin/start-slave.sh" 1
+RUN update-alternatives --install "/usr/sbin/start-worker" "start-worker" "$SPARK_HOME/sbin/start-worker.sh" 1
+RUN update-alternatives --install "/usr/sbin/start-workers" "start-workers" "$SPARK_HOME/sbin/start-workers.sh" 1
+RUN update-alternatives --install "/usr/sbin/start-all" "start-all" "$SPARK_HOME/sbin/start-all.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-all" "stop-all" "$SPARK_HOME/sbin/stop-all.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-master" "stop-master" "$SPARK_HOME/sbin/stop-master.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-slaves" "stop-slaves" "$SPARK_HOME/sbin/stop-slaves.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-worker" "stop-worker" "$SPARK_HOME/sbin/stop-worker.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-workers" "stop-workers" "$SPARK_HOME/sbin/stop-workers.sh" 1
+RUN update-alternatives --install "/usr/sbin/stop-slave" "stop-slave" "$SPARK_HOME/sbin/stop-slave.sh" 1
+RUN update-alternatives --install "/usr/sbin/spark-daemon.sh" "spark-daemon.sh" "$SPARK_HOME/sbin/spark-daemon.sh" 1
+RUN update-alternatives --install "/usr/sbin/spark-config.sh" "spark-config.sh" "$SPARK_HOME/sbin/spark-config.sh" 1
+RUN update-alternatives --install "/usr/bin/spark-shell" "spark-shell" "$SPARK_HOME/bin/spark-shell" 1
+RUN update-alternatives --install "/usr/bin/spark-class" "spark-class" "$SPARK_HOME/bin/spark-class" 1
+RUN update-alternatives --install "/usr/bin/spark-sql" "spark-sql" "$SPARK_HOME/bin/spark-sql" 1
+RUN update-alternatives --install "/usr/bin/spark-submit" "spark-submit" "$SPARK_HOME/bin/spark-submit" 1
+RUN update-alternatives --install "/usr/bin/pyspark" "pyspark" "$SPARK_HOME/bin/pyspark" 1
+RUN update-alternatives --install "/usr/bin/load-spark-env.sh" "load-spark-env.sh" "$SPARK_HOME/bin/load-spark-env.sh" 1
+
+
+# COPY CONFIG FILE SPARK IN /CONF
+COPY spark-defaults.conf $SPARK_HOME/conf
+RUN rm $SPARK_HOME/conf/spark-defaults.conf.template
+
+ENV PATH="$SPARK_HOME/bin:$SPARK_HOME/sbin:$JAVA_HOME/bin:$PATH"
+ENV PYSPARK_PYTHON=python
+ENV PYSPARK_DRIVER_PYTHON=python
+
+# Instalar dependencias de PySpark
+RUN pip3 install pyspark
+
+# Configurar el directorio de trabajo
+WORKDIR $SPARK_HOME
+
+# Exponer puertos: SSH  
+EXPOSE 22
+# expose puertos: Spark
+EXPOSE 7000-8000
+# expose puertos: master webui
+EXPOSE 8080
+## expose for slave webui
+EXPOSE 8081
+EXPOSE 6066
+
