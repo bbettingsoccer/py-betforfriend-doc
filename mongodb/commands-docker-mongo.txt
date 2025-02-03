@@ -1,0 +1,3 @@
+docker build -f dockerfile -t mongdb_bff . 
+docker run -d -p 27017:27017 --name mongod --network spark-network mongdb_bff
+mongo --host localhost

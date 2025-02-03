@@ -1,0 +1,10 @@
+
+# Steps 0 - Create Network Spark in Docker
+docker network create --driver bridge spark-network
+
+
+# py-soccer-scrapy
+docker build -f Dockerfile -t py-soccer-scrapy/bff .
+docker run -e ENVIRONMENT_TYPE=DEV  -p 8002:8002 -d -t --name py-soccer-scrapy --network spark-network py-soccer-scrapy/bff
+docker exec -it 49afe501f81d  netstat -plutn
+
