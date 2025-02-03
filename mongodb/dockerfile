@@ -1,5 +1,16 @@
 FROM mongo:latest
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    net-tools \
+    iputils-ping \
+    wget && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# Set the bind IP for MongoDB
+#ENV MONGO_BIND_IP=172.18.0.2
+
 # Expose the MongoDB port
 EXPOSE 27017
 
@@ -13,4 +24,4 @@ WORKDIR /data/db
 #COPY init-mongo.js /docker-entrypoint-initdb.d/
 
 # Start MongoDB
-CMD ["mongod"]
+CMD ["mongod", "--bind_ip", "172.18.0.2"]
