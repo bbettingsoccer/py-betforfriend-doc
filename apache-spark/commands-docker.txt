@@ -5,21 +5,24 @@ Steps 0 - Create Network Spark in Docker
 
 
 Steps 1 - Build dockerfile
-(1) docker build -f spark_dockerfile -t bff/spark .
+(1) docker build -f dockerfile -t apache-spark .
 
 Steps 2 - Master Running::
-(2) docker run -d -t --name master --network spark-network apache_spark/bff
-    (2.1) docker exec master start-master
-    (2.2) docker exec -it ac7078f98339 cat /usr/local/spark-3.5.3/spark-3.5.3-bin-hadoop3/logs/spark--org.apache.spark.deploy.master.Master-1-ac7078f98339.out
-    (2.3) docker exec -it 49afe501f81d  netstat -plutn (return IP Master)
-    (2.4) curl http://172.18.0.2:8080
+(2) docker run -d -t --name master --network spark-network apache-spark
+(2.1) docker exec master start-master
 
-Steps 3 - Worker Running::
-(3) docker run -d -t --name worker-1 --network spark-network bff/spark
-   (3.1) docker exec worker-1 start-worker spark://master:7077
-   (3.2) docker exec -it 85ecef70e0e6 cat /usr/local/spark-3.5.3/spark-3.5.3-bin-hadoop3/logs/spark--org.apache.spark.deploy.worker.Worker-1-85ecef70e0e6.out
+Step 3 - Worker Running::
+(3) docker run -d -t --name worker-1 --network spark-network apache-spark
+(3.1) docker exec worker-1 start-worker spark://master:707
+7
+ 
 
 ## COMMAND SUPPORT:
+
+ docker exec -it ac7078f98339 cat /usr/local/spark-3.5.3/spark-3.5.3-bin-hadoop3/logs/spark--org.apache.spark.deploy.master.Master-1-ac7078f98339.out
+ docker exec -it 49afe501f81d  netstat -plutn (return IP Master)
+ curl http://172.18.0.2:8080
+
 
 + List
 docker ps -a

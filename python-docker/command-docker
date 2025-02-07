@@ -8,3 +8,8 @@ docker build -f Dockerfile -t py-soccer-scrapy/bff .
 docker run -e ENVIRONMENT_TYPE=DEV  -p 8002:8002 -d -t --name py-soccer-scrapy --network spark-network py-soccer-scrapy/bff
 docker exec -it 49afe501f81d  netstat -plutn
 
+# py-resultmatch-etl
+docker build -f Dockerfile -t py-resultmatch-etl .
+docker tag py-resultmatch-etl bbettingsoccer/py-resultmatch-etl
+docker push bbettingsoccer/py-resultmatch-etl
+
