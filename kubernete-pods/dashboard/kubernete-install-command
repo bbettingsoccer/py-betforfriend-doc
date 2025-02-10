@@ -1,0 +1,233 @@
+=======================================================================================================
+1. Deshabilitar Swap ::
+=======================================================================================================
+   sudo swapoff -a
+   /etc/fstab  comenta cualquier línea que contenga swap
+
+=======================================================================================================
+2. Instalar dependencias ::
+=======================================================================================================
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y apt-transport-https ca-certificates curl
+
+=========================================================================================================
+3. Instalar containerd
+=========================================================================================================
+
+   sudo apt install -y containerd
+	
+   3.1. Configurar containerd
+	sudo mkdir -p /etc/containerd
+	containerd config default | sudo tee /etc/containerd/config.toml
+
+      - Local instalado containerd::
+
+	root = "/var/lib/containerd"
+	state = "/run/containerd"
+	address = "/run/containerd/containerd.sock"
+	Ahora, edita el archivo /etc/containerd/config.toml y deshabilita la opción de cgroup en Systemd.
+	Busca la línea: SystemdCgroup = false
+	Y cámbiala a: SystemdCgroup = true
+
+	Reinicia containerd:
+		sudo systemctl restart containerd
+			Created symlink /etc/systemd/system/multi-user.target.wants/containerd.service → /lib/systemd/system/containerd.service.
+		sudo systemctl enable containerd
+		
+		systemctl enable kubelet.service
+			Created symlink /etc/systemd/system/multi-user.target.wants/kubelet.service → /lib/systemd/system/kubelet.service.
+			
+		systemctl restart kubelet
+		sudo systemctl status kubelet
+
+==============================================================================================================
+4. Instalar Kubernetes (kubeadm, kubelet y kubectl) ::
+==============================================================================================================
+
+	4.1. Agregar el repositorio de Kubernetes::
+
+	curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo tee /etc/apt/keyrings/kubernetes-apt-keyring.asc
+	echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+	4.2. Instalar paquetes de Kubernetes::
+
+	sudo apt update
+	sudo apt install -y kubelet kubeadm kubectl
+
+============================================================================================================
+5. Iniciar el clúster Kubernetes::
+============================================================================================================
+
+        5.1. Configurar el nodo master::
+	
+        Ejecuta el siguiente comando en el nodo maestro:
+	
+	sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+        
+        -- Traza Init
+
+        root@ricardo-virtual-machine:/etc/kubernetes/manifests# kubeadm init --pod-network-cidr=192.168.0.0/16
+	[init] Using Kubernetes version: v1.32.1
+	[preflight] Running pre-flight checks
+	[preflight] Pulling images required for setting up a Kubernetes cluster
+	[preflight] This might take a minute or two, depending on the speed of your internet connection
+	[preflight] You can also perform this action beforehand using 'kubeadm config images pull'
+	W0208 19:33:58.855457  313113 checks.go:846] detected that the sandbox image "registry.k8s.io/pause:3.8" of the container runtime is inconsistent with that used by kubeadm.It is recommended to use "registry.k8s.io/pause:3.10" as the CRI sandbox image.
+	[certs] Using certificateDir folder "/etc/kubernetes/pki"
+	[certs] Generating "ca" certificate and key
+	[certs] Generating "apiserver" certificate and key
+	[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local slave-node] and IPs [10.96.0.1 192.168.40.128]
+	[certs] Generating "apiserver-kubelet-client" certificate and key
+	[certs] Generating "front-proxy-ca" certificate and key
+	[certs] Generating "front-proxy-client" certificate and key
+	[certs] Generating "etcd/ca" certificate and key
+	[certs] Generating "etcd/server" certificate and key
+	[certs] etcd/server serving cert is signed for DNS names [localhost slave-node] and IPs [192.168.40.128 127.0.0.1 ::1]
+	[certs] Generating "etcd/peer" certificate and key
+	[certs] etcd/peer serving cert is signed for DNS names [localhost slave-node] and IPs [192.168.40.128 127.0.0.1 ::1]
+	[certs] Generating "etcd/healthcheck-client" certificate and key
+	[certs] Generating "apiserver-etcd-client" certificate and key
+	[certs] Generating "sa" key and public key
+	[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+	[kubeconfig] Writing "admin.conf" kubeconfig file
+	[kubeconfig] Writing "super-admin.conf" kubeconfig file
+	[kubeconfig] Writing "kubelet.conf" kubeconfig file
+	[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+	[kubeconfig] Writing "scheduler.conf" kubeconfig file
+	[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+	[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+	[control-plane] Creating static Pod manifest for "kube-apiserver"
+	[control-plane] Creating static Pod manifest for "kube-controller-manager"
+	[control-plane] Creating static Pod manifest for "kube-scheduler"
+	[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+	[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+	[kubelet-start] Starting the kubelet
+	[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests"
+	[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+	[kubelet-check] The kubelet is healthy after 505.685872ms
+	[api-check] Waiting for a healthy API server. This can take up to 4m0s
+	[api-check] The API server is healthy after 1m14.502112829s
+	[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+	[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+	[upload-certs] Skipping phase. Please see --upload-certs
+	[mark-control-plane] Marking the node slave-node as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+	[mark-control-plane] Marking the node slave-node as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+	[bootstrap-token] Using token: d0g6dk.bjg8dca1bwvjxzeg
+	[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+	[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+	[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+	[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+	[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+	[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+	[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+	[addons] Applied essential addon: CoreDNS
+	[addons] Applied essential addon: kube-proxy
+
+	Your Kubernetes control-plane has initialized successfully!
+
+	To start using your cluster, you need to run the following as a regular user:
+
+	  mkdir -p $HOME/.kube
+	  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+	Alternatively, if you are the root user, you can run:
+
+	  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+	You should now deploy a pod network to the cluster.
+	Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+	  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+	Then you can join any number of worker nodes by running the following on each as root:
+
+	kubeadm join 192.168.40.128:6443 --token d0g6dk.bjg8dca1bwvjxzeg \
+		--discovery-token-ca-cert-hash sha256:48ac3b03e997f4759316814cc797776724f75ee8aa660e8f306278ef2fdccf29 
+		
+	kubeadm join 192.168.40.128:6443 --token 13vubm.lq5z6xzpjcftupat --discovery-token-ca-cert-hash sha256:48ac3b03e997f4759316814cc797776724f75ee8aa660e8f306278ef2fdccf29 
+
+5.2. Configurar kubectl en el usuario actual
+
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+=============================================================================================================
+6. Instalar un plugin de red (CNI)
+=============================================================================================================
+Para que los pods puedan comunicarse, instala Calico como CNI:
+Calico es una solución de redes y seguridad para Kubernetes, diseñada para proporcionar conectividad entre 
+pods y aplicar políticas de seguridad de red en un clúster. 
+Es una de las opciones más populares para gestionar la red en Kubernetes, junto con Flannel, Cilium y otros.
+
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+
+     oddisruptionbudget.policy/calico-kube-controllers created
+     serviceaccount/calico-kube-controllers created
+     serviceaccount/calico-node created
+     serviceaccount/calico-cni-plugin created
+     configmap/calico-config created
+     customresourcedefinition.apiextensions.k8s.io/bgpconfigurations.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/bgpfilters.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/bgppeers.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/blockaffinities.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/caliconodestatuses.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/clusterinformations.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/felixconfigurations.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/globalnetworkpolicies.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/globalnetworksets.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/hostendpoints.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/ipamblocks.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/ipamconfigs.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/ipamhandles.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/ippools.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/ipreservations.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/kubecontrollersconfigurations.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/networkpolicies.crd.projectcalico.org created
+     customresourcedefinition.apiextensions.k8s.io/networksets.crd.projectcalico.org created
+     clusterrole.rbac.authorization.k8s.io/calico-kube-controllers created
+     clusterrole.rbac.authorization.k8s.io/calico-node created
+     clusterrole.rbac.authorization.k8s.io/calico-cni-plugin created
+     clusterrolebinding.rbac.authorization.k8s.io/calico-kube-controllers created
+     clusterrolebinding.rbac.authorization.k8s.io/calico-node created
+     clusterrolebinding.rbac.authorization.k8s.io/calico-cni-plugin created
+     daemonset.apps/calico-node created
+     deployment.apps/calico-kube-controllers created
+
+=============================================================================================================
+7. Agregar nodos al clúster en servidores distintos:
+=============================================================================================================
+
+En cada nodo worker, usa el comando kubeadm join ... que se mostró en la salida del kubeadm init del nodo maestro. 
+Si lo perdiste, puedes volver a generarlo con:
+
+kubeadm token create --print-join-command
+kubeadm join <IP_MAESTRO>:<PUERTO> --token <TOKEN> --discovery-token-ca-cert-hash sha256:<HASH>
+kubeadm join 192.168.40.128:6443 --token d0g6dk.bjg8dca1bwvjxzeg \
+		--discovery-token-ca-cert-hash sha256:48ac3b03e997f4759316814cc797776724f75ee8aa660e8f306278ef2fdccf29
+
+=====================================================================================================
+7) Permitir que en el nodo master actúe también como worker::
+=====================================================================================================
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+Esto eliminará la taint del master y permitirá que ejecute pods de worker sin necesidad de unirlo formalmente.
+
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+
+RESULTADO: node/<nombre-del-nodo> untainted
+
+Esto indica que el nodo ha sido "untainted", es decir, se ha eliminado la restricción que impedía programar pods en él.
+Para verificar que el nodo puede aceptar cargas de trabajo, usa el siguiente comando:
+
+kubectl describe node <nombre-del-nodo> | grep Taints
+
+
+==================================================================
+10) Restablece la configuración de kubeadm y vuelve a intentarlo
+==================================================================
+Si el problema persiste, intenta restablecer kubeadm y volver a inicializar el clúster:
+
+sudo kubeadm reset
+sudo rm -rf /etc/kubernetes /var/lib/etcd
+sudo systemctl restart kubelet
+sudo kubeadm init
